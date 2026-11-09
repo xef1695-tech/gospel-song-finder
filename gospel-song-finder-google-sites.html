@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gospel Song Finder</title>
+<style>
+:root{--bg:#10182b;--panel:#1b2942;--panel2:#22324e;--gold:#d8b875;--cream:#fff4dc;--muted:#aebbd0;--line:#354763}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--cream);font-family:Inter,Arial,sans-serif}
+header{padding:25px 20px 22px;background:linear-gradient(120deg,#17243d,#263958);border-bottom:1px solid var(--gold)}
+.wrap{max-width:1050px;margin:auto}
+.brand{font:600 clamp(23px,4vw,34px) Georgia,serif;letter-spacing:1.2px;color:var(--gold)}
+.tagline{margin:7px 0 0;color:var(--muted);font-size:14px}
+main{max-width:1050px;margin:auto;padding:22px 18px 42px}
+h2{font:600 23px Georgia,serif;color:var(--gold);margin:26px 0 12px}
+.searchbar{display:flex;gap:9px;margin:18px 0 10px}
+input{min-width:0;flex:1;background:#202f49;border:1px solid #52627a;border-radius:10px;color:white;padding:14px;font-size:16px;outline:none}
+input:focus{border-color:var(--gold)}
+button,.pill{border:0;border-radius:9px;background:var(--gold);color:#18233a;padding:12px 15px;font-weight:700;cursor:pointer}
+button.secondary{background:#30415e;color:var(--cream);border:1px solid #52627a}
+button:disabled{opacity:.5;cursor:wait}
+.tabs,.tools{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tab{background:#263752;color:var(--cream);border:1px solid var(--line)}
+.tab.active{background:var(--gold);color:#18233a}
+.note,.status{font-size:13px;color:var(--muted);line-height:1.55}
+.status{min-height:20px;color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.song-card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px;display:flex;flex-direction:column;gap:9px}
+.song-card h3{margin:0;font:600 19px Georgia,serif}
+.song-card p{margin:0;color:var(--muted);font-size:13px}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:5px}
+.card-actions button{padding:9px 11px;font-size:12px}
+.panel{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px}
+.panel.hidden{display:none}
+.song-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.song-head h2{margin:0 0 5px}
+.song-head p{margin:0;color:var(--muted);font-size:13px}
+.lyrics{margin-top:18px;padding:18px;background:#121e33;border-radius:11px;overflow-x:auto}
+.lyric-line{display:flex;flex-wrap:wrap;align-items:flex-end;line-height:1.9;min-height:2.1em;font-family:Georgia,serif}
+.lyric-piece{display:inline-flex;flex-direction:column;white-space:pre}
+.chord{font:700 .72em Arial,sans-serif;color:var(--gold);line-height:1.3;min-height:1em}
+.words{white-space:pre}
+.tools{align-items:center}
+.tools label{font-size:13px;color:var(--muted)}
+.tools input[type=range]{flex:1;min-width:100px;padding:0}
+.source-link{display:inline-block;color:var(--gold);margin-top:12px;font-size:13px}
+.empty{padding:18px;background:var(--panel);border-radius:12px;color:var(--muted)}
+footer{text-align:center;padding:24px;color:#8190a8;font-size:12px;border-top:1px solid var(--line)}
+@media(max-width:560px){.searchbar{flex-direction:column}.song-head{display:block}.song-head .tools{margin-top:12px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">♫ GOSPEL SONG FINDER</div>
+  <p class="tagline">Discover songs for praise, worship, and everyday faith.</p>
+</div></header>
+
+<main>
+  <h2>Find a song</h2>
+  <div class="searchbar">
+    <input id="query" type="search" placeholder="Search title, artist, or keyword…" aria-label="Search songs">
+    <button id="searchBtn">Search online</button>
+  </div>
+  <div id="status" class="status" role="status">Search the built-in hymn library or look up music catalog listings online.</div>
+
+  <div class="tabs" role="tablist" aria-label="Song collections">
+    <button class="tab active" data-tab="library">Built-in hymns</button>
+    <button class="tab" data-tab="online">Online results</button>
+    <button class="tab" data-tab="favorites">Favorites</button>
+  </div>
+  <div id="songList" class="grid"></div>
+
+  <section id="detail" class="panel hidden" aria-live="polite">
+    <div class="song-head">
+      <div><h2 id="detailTitle"></h2><p id="detailArtist"></p></div>
+      <button class="secondary" id="closeDetail">Close</button>
+    </div>
+    <div class="tools">
+      <button class="secondary" id="downKey">Key −</button>
+      <span id="keyLabel" class="note">Original key</span>
+      <button class="secondary" id="upKey">Key +</button>
+      <button class="secondary" id="resetKey">Reset</button>
+      <label for="fontRange">Text size</label>
+      <input id="fontRange" type="range" min="15" max="32" value="20">
+    </div>
+    <div id="lyrics" class="lyrics"></div>
+    <div id="detailSource" class="note"></div>
+    <a id="sourceLink" class="source-link" target="_blank" rel="noopener" hidden>Open original music listing ↗</a>
+  </section>
+
+  <h2>About lyrics & copyright</h2>
+  <p class="note">The built-in collection contains public-domain hymn texts with simple illustrative chord arrangements. Online search uses the iTunes Search API to find music catalog entries; it does not supply full lyrics or chord sheets. Copyrighted lyrics and arrangements are shown only when you connect a provider that has authorized display rights. A song being available online does not make its lyrics free to copy.</p>
+</main>
+<footer>Gospel Song Finder · A worship resource</footer>
+
+<script>
+const hymns = [
+ {id:"amazing-grace",title:"Amazing Grace",artist:"John Newton · Traditional hymn",credit:"Public-domain hymn text · illustrative chord arrangement",chords:[
+  "[G]Amazing [G7]grace, how [C]sweet the [G]sound",
+  "That [G]saved a [Em]wretch like [D]me",
+  "I [G]once was [G7]lost, but [C]now am [G]found",
+  "Was [Em]blind, but [D]now I [G]see","",
+  "[G]'Twas grace that [G7]taught my [C]heart to [G]fear",
+  "And [G]grace my [Em]fears re[D]lieved",
+  "How [G]precious [G7]did that [C]grace ap[G]pear",
+  "The [Em]hour I [D]first be[G]lieved"
+ ].join("\n")},
+ {id:"holy-holy-holy",title:"Holy, Holy, Holy",artist:"Reginald Heber · Traditional hymn",credit:"Public-domain hymn text · illustrative chord arrangement",chords:[
+  "[D]Holy, [G]holy, [D]holy! [A]Lord God [D]Almighty",
+  "[D]Early in the [G]morning our [D]song shall [A]rise to [D]Thee",
+  "[D]Holy, [G]holy, [D]holy! [A]Merciful and [D]mighty",
+  "[G]God in [D]three [A]Persons, [D]blessed [A]Trin[D]ity"
+ ].join("\n")},
+ {id:"be-thou-my-vision",title:"Be Thou My Vision",artist:"Traditional Irish hymn",credit:"Public-domain hymn text · illustrative chord arrangement",chords:[
+  "[D]Be Thou my [G]Vision, O [D]Lord of my [A]heart",
+  "[D]Naught be all [G]else to me, [D]save that Thou [A]art",
+  "[D]Thou my best [G]Thought, by [D]day or by [A]night",
+  "[D]Waking or [G]sleeping, Thy [D]presence my [A]light"
+ ].join("\n")},
+ {id:"what-a-friend",title:"What a Friend We Have in Jesus",artist:"Joseph M. Scriven",credit:"Public-domain hymn text · illustrative chord arrangement",chords:[
+  "[G]What a friend we have in [D]Jesus",
+  "[G]All our sins and griefs to [D]bear",
+  "[G]What a privilege to [C]carry",
+  "[G]Everything to God in [D]prayer"
+ ].join("\n")},
+ {id:"to-god-be-glory",title:"To God Be the Glory",artist:"Fanny J. Crosby",credit:"Public-domain hymn text · illustrative chord arrangement",chords:[
+  "[G]To God be the [C]glory, great [G]things He hath [D]done",
+  "[G]So loved He the [C]world that He [G]gave us His [D]Son",
+  "[G]Who yielded His [C]life an at[G]onement for [D]sin",
+  "[G]And opened the [C]life-gate that [G]all may go [D]in"
+ ].join("\n")}
+];
+
+const $ = id => document.getElementById(id);
+let activeTab="library", onlineSongs=[], currentSong=null, transposeBy=0, fontSize=20;
+let favorites=JSON.parse(localStorage.getItem("gsf-favorites")||"[]");
+
+function safeText(value){return String(value??"")}
+function setStatus(message){$("status").textContent=message}
+function renderList(){
+ const list=$("songList"); list.innerHTML="";
+ let items=[];
+ if(activeTab==="library") items=hymns;
+ if(activeTab==="online") items=onlineSongs;
+ if(activeTab==="favorites") items=[...hymns,...onlineSongs].filter(s=>favorites.includes(s.id));
+ if(!items.length){
+  const empty=document.createElement("div");empty.className="empty";
+  empty.textContent=activeTab==="favorites"?"You have not saved any favorites yet.":"No results to show. Try a search or another tab.";
+  list.append(empty);return;
+ }
+ items.forEach(song=>{
+  const card=document.createElement("article");card.className="song-card";
+  const title=document.createElement("h3");title.textContent=song.title;
+  const artist=document.createElement("p");artist.textContent=song.artist;
+  const credit=document.createElement("p");credit.textContent=song.credit||"Online music catalog listing";
+  const actions=document.createElement("div");actions.className="card-actions";
+  const view=document.createElement("button");view.textContent=song.chords?"View lyrics & chords":"View details";
+  view.onclick=()=>openSong(song);
+  const fav=document.createElement("button");fav.className="secondary";
+  fav.textContent=favorites.includes(song.id)?"♥ Saved":"♡ Favorite";
+  fav.onclick=()=>toggleFavorite(song);
+  actions.append(view,fav);card.append(title,artist,credit,actions);list.append(card);
+ });
+}
+function switchTab(tab){
+ activeTab=tab;
+ document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+ renderList();
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+function toggleFavorite(song){
+ favorites=favorites.includes(song.id)?favorites.filter(id=>id!==song.id):[...favorites,song.id];
+ localStorage.setItem("gsf-favorites",JSON.stringify(favorites));renderList();
+}
+async function searchOnline(){
+ const query=$("query").value.trim();if(!query){setStatus("Enter a song title, artist, or keyword first.");return}
+ $("searchBtn").disabled=true;setStatus("Searching the online music catalog…");onlineSongs=[];
+ try{
+  const url="https://itunes.apple.com/search?term="+encodeURIComponent(query)+"&entity=song&limit=30";
+  const response=await fetch(url);if(!response.ok)throw new Error("Search request failed");
+  const data=await response.json();
+  onlineSongs=(data.results||[]).map(item=>({
+   id:"itunes-"+item.trackId,title:item.trackName,artist:item.artistName,
+   credit:item.collectionName||"Apple/iTunes music catalog",
+   sourceURL:item.trackViewUrl||null,chords:null
+  }));
+  setStatus(onlineSongs.length+" catalog result(s). Full lyrics/chords are not provided by this catalog.");
+  switchTab("online");
+ }catch(e){setStatus("Online search is unavailable right now. Check your connection and try again.")}
+ finally{$("searchBtn").disabled=false}
+}
+$("searchBtn").addEventListener("click",searchOnline);
+$("query").addEventListener("keydown",e=>{if(e.key==="Enter")searchOnline()});
+function openSong(song){
+ currentSong=song;transposeBy=0;
+ $("detailTitle").textContent=song.title;$("detailArtist").textContent=song.artist;
+ $("detailSource").textContent=song.credit||"";
+ const link=$("sourceLink");
+ if(song.sourceURL){link.href=song.sourceURL;link.hidden=false}else{link.hidden=true}
+ $("detail").classList.remove("hidden");renderLyrics();
+ $("detail").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderLyrics(){
+ if(!currentSong)return;
+ $("keyLabel").textContent=transposeBy===0?"Original key":(transposeBy>0?"+"+transposeBy:transposeBy)+" semitone(s)";
+ $("lyrics").style.fontSize=fontSize+"px";$("lyrics").innerHTML="";
+ if(!currentSong.chords){
+  const p=document.createElement("p");p.className="note";
+  p.textContent="This online catalog result does not include lyrics or chords. Connect a licensed lyrics-and-chords provider to display authorized content here.";
+  $("lyrics").append(p);return;
+ }
+ currentSong.chords.split("\n").forEach(line=>{
+  const row=document.createElement("div");row.className="lyric-line";
+  const pieces=line.split(/(\[[^\]]+\])/g);
+  pieces.forEach(part=>{
+   const span=document.createElement("span");span.className="lyric-piece";
+   const chord=part.match(/^\[([^\]]+)\]$/);
+   if(chord){const c=document.createElement("span");c.className="chord";c.textContent=transposeChord(chord[1]);span.append(c)}
+   else{const words=document.createElement("span");words.className="words";words.textContent=part||" ";span.append(words)}
+   row.append(span);
+  });
+  $("lyrics").append(row);
+ });
+}
+const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const flatMap={Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#"};
+function transposeChord(chord){
+ const m=chord.match(/^([A-G])([#b]?)(.*)$/);if(!m)return chord;
+ let root=m[1]+m[2];root=flatMap[root]||root;
+ const i=noteNames.indexOf(root);if(i<0)return chord;
+ return noteNames[(i+transposeBy%12+12)%12]+m[3];
+}
+$("downKey").onclick=()=>{transposeBy--;renderLyrics()};
+$("upKey").onclick=()=>{transposeBy++;renderLyrics()};
+$("resetKey").onclick=()=>{transposeBy=0;renderLyrics()};
+$("fontRange").oninput=e=>{fontSize=Number(e.target.value);renderLyrics()};
+$("closeDetail").onclick=()=>{$("detail").classList.add("hidden")};
+renderList();
+</script>
+</body>
+</html>
